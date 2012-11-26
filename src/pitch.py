@@ -30,27 +30,30 @@ class PitchMessage(object):
         if type == TIME:    #0x20 Time
             self.time = unpack('<L', payload)[0]
         elif type == ADD_ORDER_L: #0x21 Add Order - Long
-            self.time_offset, self.order_id, self.side_indicator, self.shares, self.symbol, self.price = unpack('<LQcL6sQ', payload)
+            self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price = unpack('<LQcL6sQ', payload)
         elif type == ADD_ORDER_S: #0x22 Add Order - Short
-            self.time_offset, self.order_id, self.side_indicator, self.shares, self.symbol, self.price = unpack('<LQcH6sH', payload)
+            self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price = unpack('<LQcH6sH', payload)
+            self.price *= 100
         elif type == ORDER_EXECUTED: #0x23 Order Executed
             self.time_offset, self.order_id, self.executed_shares, self.execution_id = unpack('<LQLQ', payload)
         elif type == ORDER_EXECUTED_AT_PRICE_SIZE: #0x24 Order Executed at Price/Size
             self.time_offset, self.order_id, self.executed_shares, self.remaining_shares, self.execution_id, self.price = unpack('<LQLLQQ', payload)
         elif type == REDUCE_SIZE_L: #0x25 Reduce Size - Long
-            self.time_offset, self.order_id, self.cancelled_shares = unpack('<LQL', payload)
+            self.time_offset, self.order_id, self.canceled_shares = unpack('<LQL', payload)
         elif type == REDUCE_SIZE_S: #0x26 Reduce Size - Short
-            self.time_offset, self.order_id, self.cancelled_shares = unpack('<LQH', payload)
+            self.time_offset, self.order_id, self.canceled_shares = unpack('<LQH', payload)
         elif type == MODIFY_ORDER_S: #0x27 Modify Order - Long
             self.time_offset, self.order_id, self.shares, self.price = unpack('<LQLQ', payload)
         elif type == MODIFY_ORDER_L: #0x28 Modify Order - Short
             self.time_offset, self.order_id, self.shares, self.price = unpack('<LQHH', payload)
+            self.price *= 100
         elif type == DELETE_ORDER: #0x29 Delete Order
             self.time_offset, self.order_id = unpack('<LQ', payload)
         elif type == TRADE_L: #0x2A Trade - Long
-            self.time_offset, self.order_id, self.side_indicator, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcL6sQQ', payload) 
+            self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcL6sQQ', payload) 
         elif type == TRADE_S: #0x2B Trade - Short
-            self.time_offset, self.order_id, self.side_indicator, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcH6sHQ', payload) 
+            self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcH6sHQ', payload)
+            self.price *= 100
         elif type == TRADE_BREAK: #0x2C Trade Break
             self.time_offset, self.execution_id = unpack('<LQ', payload)
         elif type == END_OF_SESSION: #0x2D End of Session
@@ -59,7 +62,7 @@ class PitchMessage(object):
             raise ValueError('Invalid message type: %s', type)
 
     def __repr__(self):
-        return '%s: %s' % (MESSAGE_DESCRIPTIONS[self.type].upper(), self.__dict__)
+        return '%s %s %s' % (self.__class__.__name__, MESSAGE_DESCRIPTIONS[self.type].upper(), self.__dict__)
     
 
 class PitchMessageReader(object):
@@ -101,6 +104,8 @@ if __name__ == '__main__':
     n = 0
     max_price = -1
     min_price = 1E9
+    symbols = set()
+    order_ids = set()
     with PitchMessageReader(sys.stdin) as reader:
         while True:
             msg = reader.read_message()
@@ -109,8 +114,12 @@ if __name__ == '__main__':
                 if hasattr(msg, 'price'):
                     min_price = min(min_price, msg.price)
                     max_price = max(max_price, msg.price)
+                if hasattr(msg, 'symbol'):
+                    symbols.add(msg.symbol.strip())
+                if hasattr(msg, 'order_id'):
+                    order_ids.add(msg.order_id)
                 print msg
             else:
                 break 
-    print 'Parsed %s message(s) in %s second(s), min price was %s and max price was %s.' % (n, (time.time() - start), min_price, max_price)
+    print 'Parsed %s message(s) in %s second(s), symbols was %s, orders was %s, min price was %s and max price was %s.' % (n, (time.time() - start), len(symbols), len(order_ids), min_price, max_price)
         
