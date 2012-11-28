@@ -102,8 +102,8 @@ class PitchMessageReader(object):
 def main():
     start = time.time()
     n = 0
-    max_price = -1
-    min_price = 1E9
+    max_price = 0
+    min_price = sys.maxint
     symbols = set()
     order_ids = set()
     with PitchMessageReader(sys.stdin) as reader:
@@ -122,7 +122,7 @@ def main():
             else:
                 break 
     print 'Parsed %s message(s) in %s second(s), symbols was %s, orders was %s, min price was %s and max price was %s.' % (n, (time.time() - start), ','.join(symbols), len(order_ids), min_price, max_price)
-        
+
 
 if __name__ == '__main__':
     main()

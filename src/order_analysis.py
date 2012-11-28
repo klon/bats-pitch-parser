@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 import sys, time
 from collections import defaultdict
-from pitch import *
-
+from pitch import PitchMessageReader
+from pitch import TIME, ADD_ORDER_L, ADD_ORDER_S, ORDER_EXECUTED, ORDER_EXECUTED_AT_PRICE_SIZE, REDUCE_SIZE_L
+from pitch import REDUCE_SIZE_S, MODIFY_ORDER_S, MODIFY_ORDER_L, DELETE_ORDER, TRADE_L, TRADE_S, TRADE_BREAK, END_OF_SESSION
 
 class Order(object):
     
@@ -16,65 +17,6 @@ class Order(object):
     def __repr__(self):
         return '%s %s' % (self.__class__.__name__, self.__dict__)
     
-    def top_of_book_duration(self):
-        return self.exit_time - self.entry_time
-
-class NaiveOrderBookOld(object):
-    
-    def __init__(self, symbol, max_price=1000000):
-        self.symbol = symbol
-        self.max_price = max_price
-        self.orders_by_price = [[] for _ in xrange(max_price)]
-        self.ask_min = max_price
-        self.bid_max = 0
-
-    def __repr__(self):
-        return '%s %s %s<->%s' % (self.__class__.__name__, self.symbol, self.bid_max, self.ask_min)
-
-    def add_order(self, order, msg_time):
-        if order.entry_time is None:
-            order.entry_time = msg_time
-        order_price = order.price
-        orders = self.orders_by_price[order_price]
-        orders.append(order)
-        if order.side == 'B':
-            if order_price >= self.bid_max:
-                order.entry_at_top = True
-            if order_price > self.bid_max:
-                if self.bid_max > 0:
-                    for o in self.orders_by_price[self.bid_max]:
-                        if o.exit_time is None:
-                            o.exit_time = msg_time
-                self.bid_max = order_price
-        else:
-            if order_price <= self.ask_min:
-                order.entry_at_top = True
-            if order_price < self.ask_min:
-                if self.ask_min < self.max_price:
-                    for o in self.orders_by_price[self.ask_min]:
-                        if o.exit_time is None:
-                            o.exit_time = msg_time
-                self.ask_min = order_price
-
-    def remove_order(self, order, msg_time):
-        if order.exit_time is None:
-            order.exit_time = msg_time
-        order_price = order.price
-        orders = self.orders_by_price[order_price]
-        orders.remove(order)
-        if order.side == 'B':
-            if order_price >= self.bid_max:
-                p = order_price
-                while p > 0 and len(self.orders_by_price[p]) == 0:
-                    p -= 1
-                self.bid_max = p
-        else:
-            if order_price <= self.ask_min:
-                p = order_price
-                while p < self.max_price and len(self.orders_by_price[p]) == 0:
-                    p += 1
-                self.ask_min = p
-                
 class NaiveOrderBook(object):
     
     def __init__(self, symbol):
@@ -121,7 +63,7 @@ class NaiveOrderBook(object):
                 del self.bids_by_price[order_price]
             if order_price >= self.bid_max:
                 prices = sorted(self.bids_by_price.keys(), reverse=True)
-                if len(prices):
+                if prices:
                     self.bid_max = prices[0]
                 else:
                     self.bid_max = 0
@@ -132,7 +74,7 @@ class NaiveOrderBook(object):
                 del self.asks_by_price[order_price]
             if order_price <= self.ask_min:
                 prices = sorted(self.asks_by_price.keys())
-                if len(prices):
+                if prices:
                     self.ask_min = prices[0]
                 else:
                     self.ask_min = sys.maxint
@@ -206,10 +148,12 @@ def main():
     count_by_symbol = defaultdict(int)
     for o in orders.values():
         if o.entry_at_top:
-            duration_by_symbol[o.symbol] += o.top_of_book_duration()
+            duration_by_symbol[o.symbol] += (o.exit_time - o.entry_time)
             count_by_symbol[o.symbol] += 1
+
+    print 'symbol avg duration'
     for s, d in duration_by_symbol.items():
-        print s, d / count_by_symbol[s]
+        print '%s %12.2f' % (s, d / count_by_symbol[s])
         
     print 'Parsed %s message(s) in %s sec(s).' % (n, (time.time() - start))
     
