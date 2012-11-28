@@ -27,36 +27,36 @@ class PitchMessage(object):
     def __init__(self, type, payload):
         self.type = type
         self.payload = payload
-        if type == TIME:    #0x20 Time
+        if type == TIME:
             self.time = unpack('<L', payload)[0]
-        elif type == ADD_ORDER_L: #0x21 Add Order - Long
+        elif type == ADD_ORDER_L:
             self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price = unpack('<LQcL6sQ', payload)
-        elif type == ADD_ORDER_S: #0x22 Add Order - Short
+        elif type == ADD_ORDER_S:
             self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price = unpack('<LQcH6sH', payload)
             self.price *= 100
-        elif type == ORDER_EXECUTED: #0x23 Order Executed
+        elif type == ORDER_EXECUTED:
             self.time_offset, self.order_id, self.executed_shares, self.execution_id = unpack('<LQLQ', payload)
-        elif type == ORDER_EXECUTED_AT_PRICE_SIZE: #0x24 Order Executed at Price/Size
+        elif type == ORDER_EXECUTED_AT_PRICE_SIZE:
             self.time_offset, self.order_id, self.executed_shares, self.remaining_shares, self.execution_id, self.price = unpack('<LQLLQQ', payload)
-        elif type == REDUCE_SIZE_L: #0x25 Reduce Size - Long
+        elif type == REDUCE_SIZE_L:
             self.time_offset, self.order_id, self.canceled_shares = unpack('<LQL', payload)
-        elif type == REDUCE_SIZE_S: #0x26 Reduce Size - Short
+        elif type == REDUCE_SIZE_S:
             self.time_offset, self.order_id, self.canceled_shares = unpack('<LQH', payload)
-        elif type == MODIFY_ORDER_S: #0x27 Modify Order - Long
+        elif type == MODIFY_ORDER_S:
             self.time_offset, self.order_id, self.shares, self.price = unpack('<LQLQ', payload)
-        elif type == MODIFY_ORDER_L: #0x28 Modify Order - Short
+        elif type == MODIFY_ORDER_L:
             self.time_offset, self.order_id, self.shares, self.price = unpack('<LQHH', payload)
             self.price *= 100
-        elif type == DELETE_ORDER: #0x29 Delete Order
+        elif type == DELETE_ORDER:
             self.time_offset, self.order_id = unpack('<LQ', payload)
-        elif type == TRADE_L: #0x2A Trade - Long
+        elif type == TRADE_L:
             self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcL6sQQ', payload) 
-        elif type == TRADE_S: #0x2B Trade - Short
+        elif type == TRADE_S:
             self.time_offset, self.order_id, self.side, self.shares, self.symbol, self.price, self.execution_id = unpack('<LQcH6sHQ', payload)
             self.price *= 100
-        elif type == TRADE_BREAK: #0x2C Trade Break
+        elif type == TRADE_BREAK:
             self.time_offset, self.execution_id = unpack('<LQ', payload)
-        elif type == END_OF_SESSION: #0x2D End of Session
+        elif type == END_OF_SESSION:
             self.time_offset = unpack('<L', payload)[0]
         else:
             raise ValueError('Invalid message type: %s', type)
@@ -98,8 +98,8 @@ class PitchMessageReader(object):
         except:
             pass
         return False
-
-if __name__ == '__main__':
+    
+def main():
     start = time.time()
     n = 0
     max_price = -1
@@ -121,5 +121,8 @@ if __name__ == '__main__':
                 print msg
             else:
                 break 
-    print 'Parsed %s message(s) in %s second(s), symbols was %s, orders was %s, min price was %s and max price was %s.' % (n, (time.time() - start), len(symbols), len(order_ids), min_price, max_price)
+    print 'Parsed %s message(s) in %s second(s), symbols was %s, orders was %s, min price was %s and max price was %s.' % (n, (time.time() - start), ','.join(symbols), len(order_ids), min_price, max_price)
         
+
+if __name__ == '__main__':
+    main()
