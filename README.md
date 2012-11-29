@@ -9,5 +9,5 @@ See specification at http://cdn.batstrading.com/resources/participant_resources/
 To run the sample code use:
 
 	python pitch.py < testdata/pitch
-	
+
 	python order_analysis.py < testdata/pitch
