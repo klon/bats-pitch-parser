@@ -109,18 +109,18 @@ def main():
     with PitchMessageReader(sys.stdin) as reader:
         while True:
             msg = reader.read_message()
-            if msg:
-                n += 1
-                if hasattr(msg, 'price'):
-                    min_price = min(min_price, msg.price)
-                    max_price = max(max_price, msg.price)
-                if hasattr(msg, 'symbol'):
-                    symbols.add(msg.symbol.strip())
-                if hasattr(msg, 'order_id'):
-                    order_ids.add(msg.order_id)
-                print msg
-            else:
-                break 
+            if msg is None:
+                break
+            n += 1
+            if hasattr(msg, 'price'):
+                min_price = min(min_price, msg.price)
+                max_price = max(max_price, msg.price)
+            if hasattr(msg, 'symbol'):
+                symbols.add(msg.symbol.strip())
+            if hasattr(msg, 'order_id'):
+                order_ids.add(msg.order_id)
+            print msg
+
     print 'Parsed %s message(s) in %s second(s), symbols was %s, orders was %s, min price was %s and max price was %s.' % (n, (time.time() - start), ','.join(symbols), len(order_ids), min_price, max_price)
 
 

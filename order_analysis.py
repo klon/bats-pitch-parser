@@ -6,6 +6,7 @@ from pitch import PitchMessageReader
 from pitch import TIME, ADD_ORDER_L, ADD_ORDER_S, ORDER_EXECUTED, ORDER_EXECUTED_AT_PRICE_SIZE, REDUCE_SIZE_L
 from pitch import REDUCE_SIZE_S, MODIFY_ORDER_S, MODIFY_ORDER_L, DELETE_ORDER, TRADE_L, TRADE_S, TRADE_BREAK, END_OF_SESSION
 
+
 class Order(object):
     
     def __init__(self, order_id, symbol, side, size, price):
@@ -16,13 +17,14 @@ class Order(object):
 
     def __repr__(self):
         return '%s %s' % (self.__class__.__name__, self.__dict__)
-    
+
+
 class NaiveOrderBook(object):
     
     def __init__(self, symbol):
         self.symbol = symbol
-        self.bids_by_price = defaultdict(list)
-        self.asks_by_price = defaultdict(list)
+        self.bids_by_price = defaultdict(dict)
+        self.asks_by_price = defaultdict(dict)
         self.ask_min = sys.maxint
         self.bid_max = 0
 
@@ -34,20 +36,20 @@ class NaiveOrderBook(object):
             order.entry_time = msg_time
         order_price = order.price
         if order.side == 'B':
-            self.bids_by_price[order_price].append(order)
+            self.bids_by_price[order_price][order.order_id] = order
             if order_price >= self.bid_max:
                 order.entry_at_top = True
             if order_price > self.bid_max:
-                for o in self.bids_by_price[self.bid_max]:
+                for o in self.bids_by_price[self.bid_max].values():
                     if o.exit_time is None:
                         o.exit_time = msg_time
                 self.bid_max = order_price
         else:
-            self.asks_by_price[order_price].append(order)
+            self.asks_by_price[order_price][order.order_id] = order
             if order_price <= self.ask_min:
                 order.entry_at_top = True
             if order_price < self.ask_min:
-                for o in self.asks_by_price[self.ask_min]:
+                for o in self.asks_by_price[self.ask_min].values():
                     if o.exit_time is None:
                         o.exit_time = msg_time
                 self.ask_min = order_price
@@ -58,7 +60,7 @@ class NaiveOrderBook(object):
         order_price = order.price
         if order.side == 'B':
             orders = self.bids_by_price[order_price]
-            orders.remove(order)
+            del orders[order.order_id]
             if len(orders) == 0:
                 del self.bids_by_price[order_price]
             if order_price >= self.bid_max:
@@ -69,7 +71,7 @@ class NaiveOrderBook(object):
                     self.bid_max = 0
         else:
             orders = self.asks_by_price[order_price]
-            orders.remove(order)
+            del orders[order.order_id]
             if len(orders) == 0:
                 del self.asks_by_price[order_price]
             if order_price <= self.ask_min:
@@ -86,9 +88,9 @@ def main():
     orders = {}
     abs_time = 0
     
-    with PitchMessageReader(sys.stdin) as r:
+    with PitchMessageReader(sys.stdin) as reader:
         while True:
-            msg = r.read_message()
+            msg = reader.read_message()
             if msg is None:
                 break
             if msg.type in (TRADE_L, TRADE_S, TRADE_BREAK, END_OF_SESSION):
@@ -105,7 +107,7 @@ def main():
             #print msg
             n += 1
             msg_time = abs_time + msg.time_offset / 1000000000.0
-            
+
             if msg.type in (ADD_ORDER_L, ADD_ORDER_S):
                 order = orders[msg.order_id] = Order(msg.order_id, msg.symbol, msg.side, msg.shares, msg.price)
                 book = books.get(order.symbol)
