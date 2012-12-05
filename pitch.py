@@ -10,8 +10,8 @@ ORDER_EXECUTED = 0x23
 ORDER_EXECUTED_AT_PRICE_SIZE = 0x24
 REDUCE_SIZE_L = 0x25
 REDUCE_SIZE_S = 0x26
-MODIFY_ORDER_S = 0x27
-MODIFY_ORDER_L = 0x28
+MODIFY_ORDER_L = 0x27
+MODIFY_ORDER_S = 0x28
 DELETE_ORDER = 0x29
 TRADE_L = 0x2A
 TRADE_S = 0x2B
@@ -42,9 +42,9 @@ class PitchMessage(object):
             self.time_offset, self.order_id, self.canceled_shares = unpack('<LQL', payload)
         elif type == REDUCE_SIZE_S:
             self.time_offset, self.order_id, self.canceled_shares = unpack('<LQH', payload)
-        elif type == MODIFY_ORDER_S:
-            self.time_offset, self.order_id, self.shares, self.price = unpack('<LQLQ', payload)
         elif type == MODIFY_ORDER_L:
+            self.time_offset, self.order_id, self.shares, self.price = unpack('<LQLQ', payload)
+        elif type == MODIFY_ORDER_S:
             self.time_offset, self.order_id, self.shares, self.price = unpack('<LQHH', payload)
             self.price *= 100
         elif type == DELETE_ORDER:
